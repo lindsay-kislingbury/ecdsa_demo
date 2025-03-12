@@ -1,6 +1,6 @@
 # Bitcoin Signature Demo: ECDSA vs DSA
 
-A visual demonstration comparing Bitcoin's ECDSA signatures with traditional DSA signatures.
+This demo illustrates why Bitcoin's use of ECDSA over traditional DSA enables a more scalable blockchain. With public keys nearly 37x smaller and faster verification, ECDSA saves the Bitcoin network hundreds of megabytes daily in storage requirements while maintaining equivalent security.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ python ecdsa_demo.py
 
 ## Features
 
-- Generates ECDSA (Bitcoin's choice) and DSA keys
+- Generates ECDSA and DSA keys
 - Signs and verifies messages with both algorithms
 - Shows key sizes and signature lengths
 - Measures performance differences
