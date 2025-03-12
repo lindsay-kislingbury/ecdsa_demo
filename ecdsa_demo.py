@@ -76,12 +76,12 @@ class ECDSAvsDSADemo:
                  width=40, state="readonly").grid(column=1, row=1, sticky="w")
         
         ttk.Label(ecdsa_frame, text="Public Key:").grid(column=0, row=2, sticky="nw", pady=2)
-        self.ecdsa_pubkey_text = tk.Text(ecdsa_frame, height=2, width=80, wrap="word")
+        self.ecdsa_pubkey_text = tk.Text(ecdsa_frame, height=2, width=90, wrap="word")
         self.ecdsa_pubkey_text.grid(column=1, row=2, sticky="w")
         self.ecdsa_pubkey_text.config(state="disabled")
         
         ttk.Label(ecdsa_frame, text="Signature:").grid(column=0, row=3, sticky="nw", pady=2)
-        self.ecdsa_sig_text = tk.Text(ecdsa_frame, height=2, width=80, wrap="word")
+        self.ecdsa_sig_text = tk.Text(ecdsa_frame, height=1, width=80, wrap="word")
         self.ecdsa_sig_text.grid(column=1, row=3, sticky="w")
         self.ecdsa_sig_text.config(state="disabled")
         
@@ -98,17 +98,18 @@ class ECDSAvsDSADemo:
         ttk.Label(dsa_frame, text="384 bytes (3072 bits)").grid(column=1, row=0, sticky="w")
         
         ttk.Label(dsa_frame, text="Public Key Size:").grid(column=0, row=1, sticky="w", pady=2)
-        self.dsa_pubkey_size_var = tk.StringVar(value="~384 bytes (no compression possible)")
+        self.dsa_pubkey_size_var = tk.StringVar(value="~1200-1300 bytes (no compression possible)")
+        
         ttk.Entry(dsa_frame, textvariable=self.dsa_pubkey_size_var, 
                  width=40, state="readonly").grid(column=1, row=1, sticky="w")
         
         ttk.Label(dsa_frame, text="Public Key:").grid(column=0, row=2, sticky="nw", pady=2)
-        self.dsa_pubkey_text = tk.Text(dsa_frame, height=4, width=80, wrap="word")
+        self.dsa_pubkey_text = tk.Text(dsa_frame, height=4, width=90, wrap="word")
         self.dsa_pubkey_text.grid(column=1, row=2, sticky="w")
         self.dsa_pubkey_text.config(state="disabled")
         
         ttk.Label(dsa_frame, text="Signature:").grid(column=0, row=3, sticky="nw", pady=2)
-        self.dsa_sig_text = tk.Text(dsa_frame, height=2, width=80, wrap="word")
+        self.dsa_sig_text = tk.Text(dsa_frame, height=1, width=80, wrap="word")
         self.dsa_sig_text.grid(column=1, row=3, sticky="w")
         self.dsa_sig_text.config(state="disabled")
         
