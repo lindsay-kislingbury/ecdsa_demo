@@ -312,8 +312,18 @@ class ECDSAvsRSADemo:
         self.fig.tight_layout()
         self.canvas.draw()
 
+    def cleanup(self):
+        """Clean up matplotlib and tkinter resources"""
+        plt.close("all")
+        self.root.quit()
+        self.root.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = ECDSAvsRSADemo(root)
-    root.mainloop()
+    root.protocol("WM_DELETE_WINDOW", app.cleanup)
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        app.cleanup()
