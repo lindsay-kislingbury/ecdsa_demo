@@ -180,7 +180,7 @@ class ECDSAvsRSADemo:
             "1.0",
             f"Signature Size: ECDSA is {rsa_sig_size/ecdsa_sig_size:.1f}x SMALLER ({ecdsa_sig_size:.1f} bytes vs RSA's {rsa_sig_size:.1f} bytes)\n"
             f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER ({int(ecdsa_sign_tps)} tx/sec vs {int(rsa_sign_tps)} tx/sec)\n"
-            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER ({int(rsa_verify_tps)} tx/sec vs {int(ecdsa_verify_tps)} tx/sec)",
+            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER ({int(ecdsa_verify_tps)} tx/sec vs {int(rsa_verify_tps)} tx/sec)",
         )
 
         self.update_charts(
