@@ -87,11 +87,11 @@ class ECDSAvsRSADemo:
             graph_frame, text="Performance Metrics", font=self.frame_title_font
         ).pack(anchor="w", pady=5)
 
-        self.fig, self.ax = plt.subplots(2, 2, figsize=(10, 5))
+        self.fig, self.ax = plt.subplots(1, 3, figsize=(10, 4))
         self.canvas = FigureCanvasTkAgg(self.fig, master=graph_frame)
         self.canvas.get_tk_widget().pack(fill="both", expand=True)
 
-        for ax in self.ax.flat:
+        for ax in self.ax:
             ax.set_title("No data yet")
         self.fig.tight_layout()
         self.canvas.draw()
@@ -175,14 +175,12 @@ class ECDSAvsRSADemo:
         verify_text = f"{'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x faster for verification"
 
         # update results display
-        # update results display
         self.results_text.delete("1.0", "end")
         self.results_text.insert(
             "1.0",
-            f"Key Size: ECDSA is {len(self.rsa_pubkey)/len(self.ecdsa_pubkey):.1f}x SMALLER ({len(self.ecdsa_pubkey)} bytes vs RSA's {len(self.rsa_pubkey)} bytes)\n"
             f"Signature Size: ECDSA is {rsa_sig_size/ecdsa_sig_size:.1f}x SMALLER ({ecdsa_sig_size:.1f} bytes vs RSA's {rsa_sig_size:.1f} bytes)\n"
-            f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER\n"
-            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER",
+            f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER ({int(ecdsa_sign_tps)} tx/sec vs {int(rsa_sign_tps)} tx/sec)\n"
+            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER ({int(rsa_verify_tps)} tx/sec vs {int(ecdsa_verify_tps)} tx/sec)",
         )
 
         self.update_charts(
@@ -260,62 +258,55 @@ class ECDSAvsRSADemo:
         ecdsa_verify_tps,
         rsa_verify_tps,
     ):
-        for ax in self.ax.flat:
-            ax.clear()
+        # Create a 1x3 grid of subplots instead of 2x2
+        self.fig.clear()  # Clear the old figure
+        self.ax = self.fig.subplots(1, 3)  # Create 1 row, 3 columns of charts
 
         colors = ["#2E86C1", "#E74C3C"]  # blue for ECDSA, red for RSA
 
-        # key sizes
-        key_sizes = [len(self.ecdsa_pubkey), len(self.rsa_pubkey)]
-        bars = self.ax[0, 0].bar(["ECDSA", "RSA"], key_sizes, color=colors)
-        self.ax[0, 0].set_title("Public Key Size (bytes)", fontsize=16)
-        self.ax[0, 0].set_ylabel("Bytes", fontsize=14)
-        for bar in bars:
-            self.ax[0, 0].text(
-                bar.get_x() + bar.get_width() / 2,
-                bar.get_height() * 1.02,
-                f"{int(bar.get_height())}",
-                ha="center",
-                fontsize=14,
-            )
-
         # signature sizes
         sig_sizes = [ecdsa_sig_size, rsa_sig_size]
-        bars = self.ax[0, 1].bar(["ECDSA", "RSA"], sig_sizes, color=colors)
-        self.ax[0, 1].set_title("Signature Size (bytes)", fontsize=16)
-        self.ax[0, 1].set_ylabel("Bytes", fontsize=14)
+        bars = self.ax[0].bar(["ECDSA", "RSA"], sig_sizes, color=colors)
+        self.ax[0].set_title("Signature Size (bytes)", fontsize=16)
+        self.ax[0].set_ylabel("Bytes", fontsize=14)
         for bar in bars:
-            self.ax[0, 1].text(
+            self.ax[0].text(
                 bar.get_x() + bar.get_width() / 2,
-                bar.get_height() * 1.02,
+                min(bar.get_height() * 0.9, bar.get_height() - 15),
                 f"{int(bar.get_height())}",
                 ha="center",
+                va="top",
+                color="white" if bar.get_height() > 100 else "black",
             )
 
         # signing speeds
         speeds = [ecdsa_sign_tps, rsa_sign_tps]
-        bars = self.ax[1, 0].bar(["ECDSA", "RSA"], speeds, color=colors)
-        self.ax[1, 0].set_title("Signing Speed (tx/sec)", fontsize=16)
-        self.ax[1, 0].set_ylabel("TX/sec", fontsize=14)
+        bars = self.ax[1].bar(["ECDSA", "RSA"], speeds, color=colors)
+        self.ax[1].set_title("Signing Speed (tx/sec)", fontsize=16)
+        self.ax[1].set_ylabel("TX/sec", fontsize=14)
         for bar in bars:
-            self.ax[1, 0].text(
+            self.ax[1].text(
                 bar.get_x() + bar.get_width() / 2,
-                bar.get_height() * 1.02,
+                min(bar.get_height() * 0.9, bar.get_height() - 150),
                 f"{int(bar.get_height())}",
                 ha="center",
+                va="top",
+                color="white" if bar.get_height() > 1000 else "black",
             )
 
         # verification speeds
         verify_speeds = [ecdsa_verify_tps, rsa_verify_tps]
-        bars = self.ax[1, 1].bar(["ECDSA", "RSA"], verify_speeds, color=colors)
-        self.ax[1, 1].set_title("Verification Speed (tx/sec)", fontsize=16)
-        self.ax[1, 1].set_ylabel("TX/sec", fontsize=14)
+        bars = self.ax[2].bar(["ECDSA", "RSA"], verify_speeds, color=colors)
+        self.ax[2].set_title("Verification Speed (tx/sec)", fontsize=16)
+        self.ax[2].set_ylabel("TX/sec", fontsize=14)
         for bar in bars:
-            self.ax[1, 1].text(
+            self.ax[2].text(
                 bar.get_x() + bar.get_width() / 2,
-                bar.get_height() * 1.02,
+                min(bar.get_height() * 0.9, bar.get_height() - 1500),
                 f"{int(bar.get_height())}",
                 ha="center",
+                va="top",
+                color="white" if bar.get_height() > 10000 else "black",
             )
 
         self.fig.tight_layout()
