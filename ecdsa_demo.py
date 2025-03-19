@@ -2,135 +2,128 @@ import os
 import time
 import tkinter as tk
 from tkinter import ttk, scrolledtext
+
+# using cryptography library for ecdsa and rsa
 from cryptography.hazmat.primitives.asymmetric import ec, rsa, padding
 from cryptography.hazmat.primitives import hashes, serialization
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 class ECDSAvsRSADemo:
     def __init__(self, root):
         self.root = root
-        root.title("ECDSA vs RSA")
-        root.geometry("800x600")
-        
-        # main container
-        main_frame = ttk.Frame(root, padding=5)
+        root.title("ECDSA vs RSA for Bitcoin")
+        root.geometry("1000x800")
+
+        self.font = ("Arial", 16)
+        self.heading_font = ("Arial", 22, "bold")
+        self.button_font = ("Arial", 18, "bold")
+        self.frame_title_font = ("Arial", 18, "bold")
+
+        # configure a style for larger buttons
+        style = ttk.Style()
+        style.configure("Big.TButton", font=self.button_font)
+
+        main_frame = ttk.Frame(root, padding=10)
         main_frame.pack(fill="both", expand=True)
-        ttk.Label(main_frame, text="ECDSA vs RSA Comparison").pack(pady=5)
-        
-        # transaction hash frame
-        hash_frame = ttk.Frame(main_frame)
-        hash_frame.pack(fill="x", pady=2)
-        
-        self.current_hash = os.urandom(32)
-        self.hash_var = tk.StringVar(value=self.current_hash.hex())
-        
-        ttk.Label(hash_frame, text="Hash:").pack(side="left")
-        hash_entry = ttk.Entry(hash_frame, textvariable=self.hash_var, width=80)
-        hash_entry.pack(side="left", padx=5)
-        hash_entry.config(state="readonly")
-        
-        ttk.Button(hash_frame, text="New Hash", 
-                  command=self.generate_new_hash).pack(side="left")
-        
-        # action Buttons
-        action_frame = ttk.Frame(main_frame)
-        action_frame.pack(fill="x", pady=5)
-        
+
+        tk.Label(
+            main_frame,
+            text="ECDSA vs RSA Performance Comparison",
+            font=self.heading_font,
+        ).pack(pady=10)
+
+        desc = ttk.LabelFrame(main_frame, padding=10)
+        desc.pack(fill="x", pady=5)
+        ttk.Label(
+            desc,
+            text="Compares ECDSA (used in Bitcoin) versus RSA at equivalent security (256-bit ECC vs 3072-bit RSA)",
+            font=self.frame_title_font,
+        ).pack(anchor="w", pady=5)
+        ttk.Label(
+            desc,
+            text="Generates 100 random 32-byte data pieces (similar to transaction hashes in Bitcoin) and signs each one with both:\n"
+            "ECDSA using the secp256k1 curve (what Bitcoin uses)\n"
+            "RSA with a 3072-bit key (equivalent security level)\n"
+            "After creating all 100 signatures with each algorithm, the code verifies all 200 signatures (100 for each algorithm)",
+            wraplength=900,
+            font=self.font,
+            justify=tk.LEFT,
+        ).pack(anchor="w")
+
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(fill="x", pady=10)
+
         self.iterations = 100
-        ttk.Button(action_frame, text=f"Sign ({self.iterations} tx)", 
-                  command=self.sign_hash).pack(side="left", padx=5)
-        
-        # ECDSA section
-        ecdsa_frame = ttk.LabelFrame(main_frame, text="ECDSA (256-bit)", padding=5)
-        ecdsa_frame.pack(fill="x", pady=2)
-        
-        ttk.Label(ecdsa_frame, text="Keys:").pack(anchor="w")
-        self.ecdsa_key_text = scrolledtext.ScrolledText(ecdsa_frame, height=4, width=90, wrap="word")
-        self.ecdsa_key_text.pack(fill="x", pady=2)
-        
-        ttk.Label(ecdsa_frame, text="Signature:").pack(anchor="w")
-        self.ecdsa_sig_text = scrolledtext.ScrolledText(ecdsa_frame, height=3, width=90, wrap="word")
-        self.ecdsa_sig_text.pack(fill="x", pady=2)
-        
-        ttk.Label(ecdsa_frame, text="Time:").pack(side="left")
-        self.ecdsa_time_var = tk.StringVar(value="N/A")
-        ttk.Label(ecdsa_frame, textvariable=self.ecdsa_time_var).pack(side="left", padx=5)
-        
-        # RSA section
-        rsa_frame = ttk.LabelFrame(main_frame, text="RSA (3072-bit)", padding=5)
-        rsa_frame.pack(fill="x", pady=2)
-        
-        ttk.Label(rsa_frame, text="Keys:").pack(anchor="w")
-        self.rsa_key_text = scrolledtext.ScrolledText(rsa_frame, height=6, width=90, wrap="word")
-        self.rsa_key_text.pack(fill="x", pady=2)
-        
-        ttk.Label(rsa_frame, text="Signature:").pack(anchor="w")
-        self.rsa_sig_text = scrolledtext.ScrolledText(rsa_frame, height=5, width=90, wrap="word")
-        self.rsa_sig_text.pack(fill="x", pady=2)
-        
-        ttk.Label(rsa_frame, text="Time:").pack(side="left")
-        self.rsa_time_var = tk.StringVar(value="N/A")
-        ttk.Label(rsa_frame, textvariable=self.rsa_time_var).pack(side="left", padx=5)
-        
-        # results section
-        result_frame = ttk.LabelFrame(main_frame, text="Results", padding=5)
-        result_frame.pack(fill="x", pady=2)
-        self.result_text = scrolledtext.ScrolledText(result_frame, height=3, width=90, wrap="word")
-        self.result_text.pack(fill="both")
-        self.result_text.insert("1.0", "Click 'Sign' to compare ECDSA vs RSA")
-        
-        # generate initial keys
+        self.run_btn = ttk.Button(
+            btn_frame,
+            text=f"Run Benchmark ({self.iterations} operations)",
+            command=self.run_benchmark,
+            style="Big.TButton",
+        )
+        self.run_btn.pack(pady=10)
+
+        self.progress_var = tk.StringVar(value="Click button to start benchmark")
+        ttk.Label(btn_frame, textvariable=self.progress_var, font=self.font).pack(
+            pady=5
+        )
+
+        results_frame = ttk.LabelFrame(main_frame, padding=10)
+        results_frame.pack(fill="x", pady=5)
+        ttk.Label(
+            results_frame, text="Benchmark Results", font=self.frame_title_font
+        ).pack(anchor="w", pady=5)
+        self.results_text = scrolledtext.ScrolledText(
+            results_frame, height=8, width=90, wrap="word", font=self.font
+        )
+        self.results_text.pack(fill="x", pady=5)
+        self.results_text.insert(
+            "1.0", "Results will appear after running the benchmark"
+        )
+
+        graph_frame = ttk.LabelFrame(main_frame, padding=10)
+        graph_frame.pack(fill="both", expand=True, pady=10)
+        ttk.Label(
+            graph_frame, text="Performance Metrics", font=self.frame_title_font
+        ).pack(anchor="w", pady=5)
+
+        self.fig, self.ax = plt.subplots(2, 2, figsize=(10, 5))
+        self.canvas = FigureCanvasTkAgg(self.fig, master=graph_frame)
+        self.canvas.get_tk_widget().pack(fill="both", expand=True)
+
+        for ax in self.ax.flat:
+            ax.set_title("No data yet")
+        self.fig.tight_layout()
+        self.canvas.draw()
+
         self.generate_keys()
-    
+
     def generate_keys(self):
-        # generate ECDSA keys (using SECP256K1 curve like Bitcoin)
+        self.progress_var.set("Generating keys...")
+        self.root.update()
+
+        # generate ecdsa keys (bitcoin uses secp256k1)
         self.ecdsa_private_key = ec.generate_private_key(ec.SECP256K1())
         self.ecdsa_public_key = self.ecdsa_private_key.public_key()
-        
-        # generate RSA keys with 3072 bits for equivalent security to 256-bit ECC
+
+        # generate rsa keys (3072 bits = 256-bit ecc security)
         self.rsa_private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=3072
+            public_exponent=65537, key_size=3072
         )
         self.rsa_public_key = self.rsa_private_key.public_key()
-        
-        self.ecdsa_signature = None
-        self.rsa_signature = None
-        
-        # display ECDSA keys
-        try:
-            ecdsa_private_bytes = self.ecdsa_private_key.private_numbers().private_value.to_bytes(32, byteorder='big')
-            
-            compressed_pubkey = self.ecdsa_public_key.public_bytes(
-                encoding=serialization.Encoding.X962,
-                format=serialization.PublicFormat.CompressedPoint
-            )
-            
-            self.ecdsa_key_text.delete("1.0", "end")
-            self.ecdsa_key_text.insert("1.0", 
-                f"Private key ({len(ecdsa_private_bytes)} bytes): {ecdsa_private_bytes.hex()}\n"
-                f"Public key (compressed, {len(compressed_pubkey)} bytes): {compressed_pubkey.hex()}"
-            )
-        except Exception as e:
-            self.ecdsa_key_text.delete("1.0", "end")
-            self.ecdsa_key_text.insert("1.0", f"Error: {str(e)}")
-        
-        # display RSA keys
-        try:
-            rsa_pub_bytes = self.rsa_public_key.public_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            )
-            
-            self.rsa_key_text.delete("1.0", "end")
-            self.rsa_key_text.insert("1.0", 
-                f"RSA key size: 3072 bits\n"
-                f"Public key ({len(rsa_pub_bytes)} bytes): {rsa_pub_bytes.hex()}"
-            )
-        except Exception as e:
-            self.rsa_key_text.delete("1.0", "end")
-            self.rsa_key_text.insert("1.0", f"Error: {str(e)}")
-        
-        # pre-warm libraries
+
+        # get key sizes for comparison
+        self.ecdsa_pubkey = self.ecdsa_public_key.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.CompressedPoint,
+        )
+        self.rsa_pubkey = self.rsa_public_key.public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        # warm-up crypto operations
         temp_hash = os.urandom(32)
         for _ in range(3):
             self.ecdsa_private_key.sign(temp_hash, ec.ECDSA(hashes.SHA256()))
@@ -138,100 +131,199 @@ class ECDSAvsRSADemo:
                 temp_hash,
                 padding.PSS(
                     mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
+                    salt_length=padding.PSS.MAX_LENGTH,
                 ),
-                hashes.SHA256()
+                hashes.SHA256(),
             )
-        
-        self.ecdsa_sig_text.delete("1.0", "end")
-        self.ecdsa_sig_text.insert("1.0", "Not signed yet")
-        self.rsa_sig_text.delete("1.0", "end")
-        self.rsa_sig_text.insert("1.0", "Not signed yet")
-    
-    def generate_new_hash(self):
-        self.current_hash = os.urandom(32)
-        self.hash_var.set(self.current_hash.hex())
-        
-        self.ecdsa_signature = None
-        self.rsa_signature = None
-        self.ecdsa_sig_text.delete("1.0", "end")
-        self.ecdsa_sig_text.insert("1.0", "Not signed yet")
-        self.rsa_sig_text.delete("1.0", "end")
-        self.rsa_sig_text.insert("1.0", "Not signed yet")
-        self.ecdsa_time_var.set("N/A")
-        self.rsa_time_var.set("N/A")
-        self.result_text.delete("1.0", "end")
-        self.result_text.insert("1.0", "Click 'Sign' to compare ECDSA vs RSA")
-    
-    def sign_hash(self):
-        # ECDSA signing
-        start_time = time.time()
-        for _ in range(self.iterations):
-            self.ecdsa_signature = self.ecdsa_private_key.sign(
-                self.current_hash,
-                ec.ECDSA(hashes.SHA256())
-            )
-        ecdsa_time = time.time() - start_time
-        
-        self.ecdsa_sig_text.delete("1.0", "end")
-        self.ecdsa_sig_text.insert("1.0", 
-            f"{len(self.ecdsa_signature)} bytes: {self.ecdsa_signature.hex()}"
-        )
-        
-        # calculate transactions per second
-        ecdsa_tps = int(self.iterations / ecdsa_time) if ecdsa_time > 0 else 0
-        self.ecdsa_time_var.set(f"{ecdsa_time:.3f} sec | ~{ecdsa_tps} tx/sec")
-        
-        # RSA signing
-        start_time = time.time()
-        for _ in range(self.iterations):
-            self.rsa_signature = self.rsa_private_key.sign(
-                self.current_hash,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
-                ),
-                hashes.SHA256()
-            )
-        rsa_time = time.time() - start_time
-        
-        self.rsa_sig_text.delete("1.0", "end")
-        self.rsa_sig_text.insert("1.0", 
-            f"{len(self.rsa_signature)} bytes: {self.rsa_signature.hex()}"
-        )
-        
-        # calculate and display stats
-        rsa_tps = int(self.iterations / rsa_time) if rsa_time > 0 else 0
-        self.rsa_time_var.set(f"{rsa_time:.3f} sec | ~{rsa_tps} tx/sec")
-        
-        compressed_pubkey = self.ecdsa_public_key.public_bytes(
-            encoding=serialization.Encoding.X962,
-            format=serialization.PublicFormat.CompressedPoint
-        )
-        
-        rsa_pub_bytes = self.rsa_public_key.public_bytes(
-            encoding=serialization.Encoding.DER,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        rsa_pubkey_size = len(rsa_pub_bytes)
-        
-        key_ratio = rsa_pubkey_size / len(compressed_pubkey)
-        sig_ratio = len(self.rsa_signature) / len(self.ecdsa_signature)
-        time_ratio = rsa_time / ecdsa_time if ecdsa_time > 0 else 1
-        
-        self.result_text.delete("1.0", "end")
-        self.result_text.insert("1.0", 
-            f"Key: ECDSA {len(compressed_pubkey)} vs RSA {rsa_pubkey_size} bytes (RSA is {key_ratio:.1f}x larger)\n"
-            f"Signature: ECDSA {len(self.ecdsa_signature)} vs RSA {len(self.rsa_signature)} bytes (RSA is {sig_ratio:.1f}x larger)\n"
-            f"Signing: ECDSA {ecdsa_tps} tx/sec vs RSA {rsa_tps} tx/sec (RSA is {time_ratio:.1f}x slower)"
+
+        self.progress_var.set("Keys generated - ready to run benchmark")
+
+    def run_benchmark(self):
+        self.run_btn.config(state="disabled")
+        self.progress_var.set("Running benchmark...")
+        self.root.update()
+
+        # generate random data to sign
+        data = [os.urandom(32) for _ in range(self.iterations)]
+
+        # run benchmarks
+        ecdsa_sigs, ecdsa_sign_time = self.benchmark_ecdsa_signing(data)
+        rsa_sigs, rsa_sign_time = self.benchmark_rsa_signing(data)
+        ecdsa_verify_time, rsa_verify_time = self.benchmark_verification(
+            data, ecdsa_sigs, rsa_sigs
         )
 
+        # calculate metrics
+        ecdsa_sig_size = sum(len(sig) for sig in ecdsa_sigs) / len(ecdsa_sigs)
+        rsa_sig_size = sum(len(sig) for sig in rsa_sigs) / len(rsa_sigs)
+
+        ecdsa_sign_tps = self.iterations / ecdsa_sign_time if ecdsa_sign_time > 0 else 0
+        rsa_sign_tps = self.iterations / rsa_sign_time if rsa_sign_time > 0 else 0
+        ecdsa_verify_tps = (
+            self.iterations / ecdsa_verify_time if ecdsa_verify_time > 0 else 0
+        )
+        rsa_verify_tps = self.iterations / rsa_verify_time if rsa_verify_time > 0 else 0
+
+        # determine which is faster
+        sign_ratio = max(ecdsa_sign_tps, rsa_sign_tps) / min(
+            ecdsa_sign_tps, rsa_sign_tps
+        )
+        sign_text = f"{'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x faster for signing"
+
+        verify_ratio = max(ecdsa_verify_tps, rsa_verify_tps) / min(
+            ecdsa_verify_tps, rsa_verify_tps
+        )
+        verify_text = f"{'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x faster for verification"
+
+        # update results display
+        self.results_text.delete("1.0", "end")
+        self.results_text.insert(
+            "1.0",
+            f"Key Size: ECDSA is {len(self.rsa_pubkey)/len(self.ecdsa_pubkey):.1f}x SMALLER ({len(self.ecdsa_pubkey)} bytes vs RSA's {len(self.rsa_pubkey)} bytes)\n\n"
+            f"Signature Size: ECDSA is {rsa_sig_size/ecdsa_sig_size:.1f}x SMALLER ({ecdsa_sig_size:.1f} bytes vs RSA's {rsa_sig_size:.1f} bytes)\n\n"
+            f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER\n\n"
+            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER\n\n"
+            f"Bitcoin saves ~{(rsa_sig_size - ecdsa_sig_size) * 2500 * 144 * 365 / (1024*1024*1024):.1f} GB annually using ECDSA's smaller signatures.",
+        )
+
+        self.update_charts(
+            ecdsa_sig_size,
+            rsa_sig_size,
+            ecdsa_sign_tps,
+            rsa_sign_tps,
+            ecdsa_verify_tps,
+            rsa_verify_tps,
+        )
+
+        self.run_btn.config(state="normal")
+        self.progress_var.set("Benchmark completed")
+
+    def benchmark_ecdsa_signing(self, data):
+        signatures = []
+        start_time = time.time()
+        for item in data:
+            # ecdsa signing
+            sig = self.ecdsa_private_key.sign(item, ec.ECDSA(hashes.SHA256()))
+            signatures.append(sig)
+        elapsed_time = time.time() - start_time
+        return signatures, elapsed_time
+
+    def benchmark_rsa_signing(self, data):
+        signatures = []
+        start_time = time.time()
+        for item in data:
+            # rsa signing
+            sig = self.rsa_private_key.sign(
+                item,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+            signatures.append(sig)
+        elapsed_time = time.time() - start_time
+        return signatures, elapsed_time
+
+    def benchmark_verification(self, data, ecdsa_sigs, rsa_sigs):
+        # ecdsa verification benchmark
+        start_time = time.time()
+        for i in range(len(data)):
+            # ecdsa verification
+            self.ecdsa_public_key.verify(
+                ecdsa_sigs[i], data[i], ec.ECDSA(hashes.SHA256())
+            )
+        ecdsa_time = time.time() - start_time
+
+        # rsa verification benchmark
+        start_time = time.time()
+        for i in range(len(data)):
+            # rsa verification
+            self.rsa_public_key.verify(
+                rsa_sigs[i],
+                data[i],
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH,
+                ),
+                hashes.SHA256(),
+            )
+        rsa_time = time.time() - start_time
+
+        return ecdsa_time, rsa_time
+
+    def update_charts(
+        self,
+        ecdsa_sig_size,
+        rsa_sig_size,
+        ecdsa_sign_tps,
+        rsa_sign_tps,
+        ecdsa_verify_tps,
+        rsa_verify_tps,
+    ):
+        for ax in self.ax.flat:
+            ax.clear()
+
+        colors = ["#2E86C1", "#E74C3C"]  # blue for ECDSA, red for RSA
+
+        # key sizes
+        key_sizes = [len(self.ecdsa_pubkey), len(self.rsa_pubkey)]
+        bars = self.ax[0, 0].bar(["ECDSA", "RSA"], key_sizes, color=colors)
+        self.ax[0, 0].set_title("Public Key Size (bytes)", fontsize=16)
+        self.ax[0, 0].set_ylabel("Bytes", fontsize=14)
+        for bar in bars:
+            self.ax[0, 0].text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() * 1.02,
+                f"{int(bar.get_height())}",
+                ha="center",
+                fontsize=14,
+            )
+
+        # signature sizes
+        sig_sizes = [ecdsa_sig_size, rsa_sig_size]
+        bars = self.ax[0, 1].bar(["ECDSA", "RSA"], sig_sizes, color=colors)
+        self.ax[0, 1].set_title("Signature Size (bytes)", fontsize=16)
+        self.ax[0, 1].set_ylabel("Bytes", fontsize=14)
+        for bar in bars:
+            self.ax[0, 1].text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() * 1.02,
+                f"{int(bar.get_height())}",
+                ha="center",
+            )
+
+        # signing speeds
+        speeds = [ecdsa_sign_tps, rsa_sign_tps]
+        bars = self.ax[1, 0].bar(["ECDSA", "RSA"], speeds, color=colors)
+        self.ax[1, 0].set_title("Signing Speed (tx/sec)", fontsize=16)
+        self.ax[1, 0].set_ylabel("TX/sec", fontsize=14)
+        for bar in bars:
+            self.ax[1, 0].text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() * 1.02,
+                f"{int(bar.get_height())}",
+                ha="center",
+            )
+
+        # verification speeds
+        verify_speeds = [ecdsa_verify_tps, rsa_verify_tps]
+        bars = self.ax[1, 1].bar(["ECDSA", "RSA"], verify_speeds, color=colors)
+        self.ax[1, 1].set_title("Verification Speed (tx/sec)", fontsize=16)
+        self.ax[1, 1].set_ylabel("TX/sec", fontsize=14)
+        for bar in bars:
+            self.ax[1, 1].text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() * 1.02,
+                f"{int(bar.get_height())}",
+                ha="center",
+            )
+
+        self.fig.tight_layout()
+        self.canvas.draw()
+
+
 if __name__ == "__main__":
-    try:
-        root = tk.Tk()
-        app = ECDSAvsRSADemo(root)
-        root.mainloop()
-    except Exception as e:
-        import traceback
-        print(f"Error: {e}")
-        traceback.print_exc()
+    root = tk.Tk()
+    app = ECDSAvsRSADemo(root)
+    root.mainloop()
