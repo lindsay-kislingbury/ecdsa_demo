@@ -38,22 +38,12 @@ class ECDSAvsRSADemo:
         desc.pack(fill="x", pady=5)
         ttk.Label(
             desc,
-            text="Compares ECDSA (used in Bitcoin) versus RSA at equivalent security (256-bit ECC vs 3072-bit RSA)",
+            text="Compares ECDSA versus RSA at equivalent security (256-bit ECDSA using secp256k1 curve vs 3072 bit RSA).",
             font=self.frame_title_font,
         ).pack(anchor="w", pady=5)
-        ttk.Label(
-            desc,
-            text="Generates 100 random 32-byte data pieces (similar to transaction hashes in Bitcoin) and signs each one with both:\n"
-            "ECDSA using the secp256k1 curve (what Bitcoin uses)\n"
-            "RSA with a 3072-bit key (equivalent security level)\n"
-            "After creating all 100 signatures with each algorithm, the code verifies all 200 signatures (100 for each algorithm)",
-            wraplength=900,
-            font=self.font,
-            justify=tk.LEFT,
-        ).pack(anchor="w")
 
         btn_frame = ttk.Frame(main_frame)
-        btn_frame.pack(fill="x", pady=10)
+        btn_frame.pack(fill="x", pady=5)
 
         self.iterations = 100
         self.run_btn = ttk.Button(
@@ -62,25 +52,26 @@ class ECDSAvsRSADemo:
             command=self.run_benchmark,
             style="Big.TButton",
         )
-        self.run_btn.pack(pady=10)
+        self.run_btn.pack(pady=5)
 
         self.progress_var = tk.StringVar(value="Click button to start benchmark")
         ttk.Label(btn_frame, textvariable=self.progress_var, font=self.font).pack(
-            pady=5
+            pady=2
         )
 
-        results_frame = ttk.LabelFrame(main_frame, padding=10)
+        results_frame = ttk.LabelFrame(main_frame, padding=5)
         results_frame.pack(fill="x", pady=5)
         ttk.Label(
             results_frame, text="Benchmark Results", font=self.frame_title_font
-        ).pack(anchor="w", pady=5)
+        ).pack(anchor="w", pady=2)
         self.results_text = scrolledtext.ScrolledText(
-            results_frame, height=8, width=90, wrap="word", font=self.font
+            results_frame,
+            height=4,
+            width=90,
+            wrap="word",
+            font=self.font,
         )
-        self.results_text.pack(fill="x", pady=5)
-        self.results_text.insert(
-            "1.0", "Results will appear after running the benchmark"
-        )
+        self.results_text.pack(fill="x", pady=2)
 
         graph_frame = ttk.LabelFrame(main_frame, padding=10)
         graph_frame.pack(fill="both", expand=True, pady=10)
@@ -176,14 +167,12 @@ class ECDSAvsRSADemo:
         verify_text = f"{'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x faster for verification"
 
         # update results display
-        self.results_text.delete("1.0", "end")
         self.results_text.insert(
             "1.0",
-            f"Key Size: ECDSA is {len(self.rsa_pubkey)/len(self.ecdsa_pubkey):.1f}x SMALLER ({len(self.ecdsa_pubkey)} bytes vs RSA's {len(self.rsa_pubkey)} bytes)\n\n"
-            f"Signature Size: ECDSA is {rsa_sig_size/ecdsa_sig_size:.1f}x SMALLER ({ecdsa_sig_size:.1f} bytes vs RSA's {rsa_sig_size:.1f} bytes)\n\n"
-            f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER\n\n"
-            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER\n\n"
-            f"Bitcoin saves ~{(rsa_sig_size - ecdsa_sig_size) * 2500 * 144 * 365 / (1024*1024*1024):.1f} GB annually using ECDSA's smaller signatures.",
+            f"Key Size: ECDSA is {len(self.rsa_pubkey)/len(self.ecdsa_pubkey):.1f}x SMALLER ({len(self.ecdsa_pubkey)} bytes vs RSA's {len(self.rsa_pubkey)} bytes)\n"  # Removed \n
+            f"Signature Size: ECDSA is {rsa_sig_size/ecdsa_sig_size:.1f}x SMALLER ({ecdsa_sig_size:.1f} bytes vs RSA's {rsa_sig_size:.1f} bytes)\n"  # Removed \n
+            f"Signing Speed: {'ECDSA' if ecdsa_sign_tps > rsa_sign_tps else 'RSA'} is {sign_ratio:.1f}x FASTER\n"
+            f"Verification: {'ECDSA' if ecdsa_verify_tps > rsa_verify_tps else 'RSA'} is {verify_ratio:.1f}x FASTER\n",
         )
 
         self.update_charts(
@@ -322,8 +311,13 @@ class ECDSAvsRSADemo:
         self.fig.tight_layout()
         self.canvas.draw()
 
+    def cleanup(self):
+        plt.close("all")  # Close all matplotlib figures
+        self.root.destroy()  # Destroy the tkinter window
+
 
 if __name__ == "__main__":
     root = tk.Tk()
     app = ECDSAvsRSADemo(root)
+    root.protocol("WM_DELETE_WINDOW", app.cleanup)  # Bind cleanup to window close
     root.mainloop()
