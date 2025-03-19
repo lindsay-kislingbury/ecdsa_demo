@@ -43,7 +43,7 @@ class ECDSAvsRSADemo:
         ).pack(anchor="w", pady=5)
         ttk.Label(
             desc,
-            text="Generates 100 random 32-byte data pieces (similar to Bitcoin transaction hashes) and signs each with both algorithms. Verifies all 200 signatures (100 per algorithm) and compares performance metrics.",
+            text="Generates 100 random 32-byte hashes (same size as Bitcoin transaction hashes) and signs each with both algorithms. Verifies all 200 signatures (100 per algorithm) and compares performance metrics.",
             wraplength=900,
             font=self.font,
             justify=tk.LEFT,
